@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Easy Studio – Tutorial</title>
+<style>
+  :root {
+    --bg: #1d1f22; --panel: #2b2d31; --box: #26282b; --btn: #45474c; --btn-h: #55585e;
+    --accent: #4772b3; --accent-2: #6a9bf0; --text: #eceff3; --muted: #a8adb5;
+    --good: #5fbf7f; --warn: #e3b25a; --edge: #3a3d42; --fs: 18px;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: var(--fs); }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font-family: "Segoe UI", system-ui, -apple-system, sans-serif; line-height: 1.5; }
+  header.top { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+               padding: .8rem 1.4rem; background: #17181b; border-bottom: 1px solid var(--edge);
+               position: sticky; top: 0; z-index: 5; }
+  header.top h1 { font-size: 1.35rem; margin: 0; flex: 1 1 auto; }
+  header.top h1 span { color: var(--muted); font-weight: 400; font-size: 1rem; margin-left: .5rem; }
+  .search { flex: 0 1 22rem; display: flex; position: relative; }
+  .search input { width: 100%; font-size: 1rem; padding: .5rem .8rem; border-radius: .5rem;
+                  border: 1px solid var(--edge); background: var(--panel); color: var(--text); }
+  .results { position: absolute; top: 110%; left: 0; right: 0; background: var(--panel);
+             border: 1px solid var(--edge); border-radius: .5rem; max-height: 60vh; overflow: auto;
+             display: none; box-shadow: 0 10px 30px #0008; }
+  .results button { display: block; width: 100%; text-align: left; background: none; border: 0;
+                    color: var(--text); padding: .55rem .8rem; font-size: .95rem; cursor: pointer; }
+  .results button:hover, .results button.sel { background: var(--btn); }
+  .results small { color: var(--muted); margin-left: .4rem; }
+  .pill { background: var(--btn); color: var(--text); border: 0; border-radius: 2rem;
+          padding: .45rem .9rem; font-size: .95rem; cursor: pointer; }
+  .pill:hover { background: var(--btn-h); }
+  .pill.primary { background: var(--accent); }
+  .pill.primary:hover { background: var(--accent-2); }
+
+  main { display: grid; grid-template-columns: minmax(330px, 420px) 1fr; gap: 1.6rem;
+         padding: 1.4rem; max-width: 1400px; margin: 0 auto; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  /* ---------- Mock Blender sidebar ---------- */
+  .mock { background: var(--panel); border: 1px solid var(--edge); border-radius: .6rem;
+          padding: .7rem; position: sticky; top: 5rem; font-size: .82rem; }
+  .mock .caption { color: var(--muted); font-size: .8rem; margin: 0 0 .5rem; text-align: center; }
+  .row { display: flex; gap: 2px; align-items: center; margin-bottom: .45rem; }
+  .row .title { flex: 1; font-weight: 600; }
+  .grid { display: grid; gap: 2px; }
+  .mbox { background: var(--box); border: 1px solid var(--edge); border-radius: .4rem;
+          padding: .45rem; margin-bottom: .5rem; }
+  .mbox h4 { margin: 0 0 .35rem; font-size: .8rem; font-weight: 500; color: var(--muted); }
+  .b { background: var(--btn); color: var(--text); border: 0; border-radius: 3px;
+       padding: .5rem .35rem; font-size: .8rem; cursor: pointer; white-space: nowrap;
+       overflow: hidden; text-overflow: ellipsis; position: relative; }
+  .b:hover { background: var(--btn-h); }
+  .b.on { background: var(--accent); }
+  .row .b { flex: 1 1 0; min-width: 0; }
+  .b.small { flex: 0 0 auto; padding: .3rem .55rem; }
+  .b.wide { width: 100%; }
+  .b.field { background: #1f2124; text-align: left; color: var(--muted); }
+  .b.check { background: none; text-align: left; padding-left: .2rem; }
+  .b.active { outline: 3px solid var(--warn); outline-offset: 1px; z-index: 1; }
+  .b.found { animation: pulse 1s ease 2; }
+  @keyframes pulse { 50% { background: var(--warn); color: #000; } }
+  .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: .5rem; }
+  .status { font-size: .78rem; color: var(--muted); }
+  .status b { color: var(--text); font-weight: 500; }
+  .modebar { display: flex; gap: 4px; margin: .2rem 0 .5rem; }
+  .modebar .b { flex: 1; font-size: .72rem; padding: .3rem; }
+  .note { font-size: .75rem; color: var(--muted); padding: .2rem; }
+
+  /* ---------- Explanation side ---------- */
+  .card { background: var(--panel); border: 1px solid var(--edge); border-radius: .8rem;
+          padding: 1.4rem 1.6rem; }
+  .card h2 { margin: 0 0 .2rem; font-size: 1.6rem; }
+  .crumbs { color: var(--muted); font-size: .9rem; margin-bottom: .9rem; }
+  .tag { display: inline-block; font-size: .78rem; padding: .1rem .55rem; border-radius: 1rem;
+         background: var(--btn); margin-right: .35rem; }
+  .tag.key { background: #3b3320; color: var(--warn); font-family: Consolas, monospace; }
+  .tag.mode { background: #203527; color: var(--good); }
+  .what { font-size: 1.15rem; margin: .8rem 0; }
+  .card h3 { font-size: 1rem; color: var(--accent-2); margin: 1.2rem 0 .4rem;
+             text-transform: uppercase; letter-spacing: .05em; }
+  ol.how { padding-left: 1.3rem; margin: 0; }
+  ol.how li { margin: .25rem 0; }
+  table.opts { width: 100%; border-collapse: collapse; }
+  table.opts td { padding: .45rem .6rem; border-top: 1px solid var(--edge); vertical-align: top; }
+  table.opts td:first-child { font-weight: 600; white-space: nowrap; width: 1%; }
+  .tip { background: #23314a; border-left: 4px solid var(--accent-2); padding: .7rem 1rem;
+         border-radius: .4rem; margin-top: 1.2rem; }
+  .tip::before { content: "Tip  "; font-weight: 700; color: var(--accent-2); }
+  .nav { display: flex; justify-content: space-between; gap: .5rem; margin-top: 1.4rem; flex-wrap: wrap; }
+  .tour { background: #3b3320; border: 1px solid #6b5a2a; border-radius: .6rem;
+          padding: .8rem 1rem; margin-bottom: 1rem; display: none; }
+  .tour b { color: var(--warn); }
+  .welcome ul { padding-left: 1.2rem; }
+  .welcome li { margin: .3rem 0; }
+  .stepcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+               gap: .7rem; margin-top: 1rem; }
+  .stepcards button { text-align: left; background: var(--box); border: 1px solid var(--edge);
+                      color: var(--text); border-radius: .6rem; padding: .8rem; cursor: pointer;
+                      font-size: .95rem; }
+  .stepcards button:hover { border-color: var(--accent-2); }
+  .stepcards b { display: block; font-size: 1.05rem; color: var(--accent-2); }
+  kbd { background: #111; border: 1px solid #555; border-bottom-width: 3px; border-radius: 4px;
+        padding: 0 .4rem; font-family: Consolas, monospace; font-size: .9em; }
+  .seen { position: absolute; top: 2px; right: 3px; width: 6px; height: 6px; border-radius: 50%;
+          background: var(--good); }
+  footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 1rem 0 2rem; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Easy Studio <span>interactive guide · Blender</span></h1>
+  <div class="search">
+    <input id="q" type="search" placeholder="Search a button… (e.g. bevel, floor, undo)" autocomplete="off">
+    <div class="results" id="results"></div>
+  </div>
+  <button class="pill primary" id="tourBtn">▶ Guided tour</button>
+  <button class="pill" id="fsMinus" title="Smaller text">A−</button>
+  <button class="pill" id="fsPlus" title="Bigger text">A+</button>
+</header>
+
+<main>
+  <aside>
+    <div class="mock" id="mock"></div>
+  </aside>
+  <section>
+    <div class="tour" id="tourBar"></div>
+    <div class="card" id="card"></div>
+  </section>
+</main>
+<footer>Click any button in the panel on the left. Keys: <kbd>←</kbd> <kbd>→</kbd> previous / next button · <kbd>/</kbd> search · <kbd>1</kbd>–<kbd>5</kbd> steps</footer>
+
+<script>
+/* ======================================================================
+   DATA – every button in the Easy tab.  Keep in sync with easy_studio/ui.py
+   ====================================================================== */
+const STEPS = [
+  { id: "START",  tab: "1 Add",    title: "Add a starting shape",
+    tips: ["Pick the shape closest to what you want.", "Cube for boxes/houses, Cylinder for poles/cups."],
+    intro: "Drop in a simple shape to start from. Every model begins as a basic shape." },
+  { id: "BLOCK",  tab: "2 Block",  title: "Rough block-out",
+    tips: ["Get the big shape and size right first.", "Mirror / Repeat save work. Details come later."],
+    intro: "Place, size and combine shapes. Add effects that build the overall form." },
+  { id: "EDIT",   tab: "3 Edit",   title: "Edit the mesh",
+    tips: ["Pick Points, Edges or Faces, then a tool.", "Drag the yellow handle in the viewport."],
+    intro: "Go inside the shape and push its points, edges and faces around." },
+  { id: "DETAIL", tab: "4 Detail", title: "Smooth and detail",
+    tips: ["Round edges + Smooth make it look finished.", "Keep effects on (not applied) while you work."],
+    intro: "Make the surface look real: rounded edges, smooth or flat shading." },
+  { id: "FINISH", tab: "5 Finish", title: "Finish and export",
+    tips: ["Apply effects, fix origin, put on floor.", "Export FBX to bring it into iClone."],
+    intro: "Lock everything in, set the pivot and export to iClone." },
+];
+
+const I = {};      // id -> item
+function item(id, o) { I[id] = Object.assign({ id }, o); }
+
+/* --- panel header --- */
+item("tips", { label: "ⓘ Tips", short: "ⓘ", group: "Panel header",
+  what: "Shows or hides the two help lines under the step title.",
+  how: ["Click to turn tips on/off."], tip: "Turn tips off once you know the steps to save space." });
+item("size_minus", { label: "− Button size", short: "−", group: "Panel header",
+  what: "Makes the Easy Studio buttons shorter.", how: ["Click to shrink by one notch (minimum 1.0)."] });
+item("size_plus", { label: "+ Button size", short: "+", group: "Panel header",
+  what: "Makes the Easy Studio buttons taller and easier to hit.", how: ["Click to grow by one notch (maximum 3.0)."],
+  tip: "This only changes Easy Studio. For all of Blender's text use ‘Bigger’ at the bottom." });
+STEPS.forEach((s, i) => item("tab_" + s.id, { label: s.tab + " tab", short: s.tab, group: "Step tabs",
+  what: `Goes to step ${i + 1}: ${s.title.toLowerCase()}.`,
+  how: s.id === "EDIT"
+    ? ["Click it. If a mesh is selected Blender switches to Edit Mode automatically."]
+    : ["Click it. If you were in Edit Mode, Blender goes back to Object Mode."],
+  tip: s.intro }));
+item("status", { label: "Status box", short: "", group: "Panel header",
+  what: "Shows the step title, the active object, the mode (Object / Editing) and how many objects are selected.",
+  how: ["Read only. ‘Nothing selected’ means click an object in the viewport first."] });
+
+/* --- step 1 --- */
+const shapes = [
+  ["cube", "Cube", "Boxes, walls, tables, houses", "1 m cube."],
+  ["cylinder", "Cylinder", "Poles, cups, pipes, wheels", "32 sides, 1 m tall, 1 m wide."],
+  ["sphere", "Sphere", "Balls, heads, fruit", "UV sphere, 32 segments."],
+  ["cone", "Cone", "Roofs, lamp shades, carrots", "32 sides, 1 m tall."],
+  ["plane", "Plane", "Floors, paper, signs, flat cards", "Flat 1 m square. Use Thickness to make it solid."],
+  ["torus", "Ring", "Rings, donuts, tyres", "Torus, 1 m across."],
+  ["ico", "Rock ball", "Rocks, even spheres", "Ico sphere: evenly spread triangles, great for rocks."],
+  ["circle", "Circle", "A profile to Spin, or a wire ring", "Outline only (no face). Combine with Spin to make vases."],
+];
+shapes.forEach(([id, l, use, det]) => item("shape_" + id, { label: l, group: "Click a shape to add it",
+  what: `Adds a ${l.toLowerCase()} at the 3D cursor. Good for: ${use}.`, options: [["Created as", det]],
+  how: ["Click it.", "It is selected and named, and Easy Studio jumps to step 2 (Block)."],
+  key: "Shift A", mode: "Any" }));
+item("on_floor", { label: "Sit new shapes on the floor", kind: "check", group: "Click a shape to add it",
+  what: "When ticked, new shapes are lifted so their bottom touches the ground (Z = 0) instead of sinking half-way into it.",
+  how: ["Tick before adding a shape."], tip: "Plane and Circle are flat so they are never lifted." });
+
+/* --- object tools (shared) --- */
+item("t_select", { label: "Select", group: "Tools", key: "W", mode: "Object & Edit",
+  what: "Selection tool: click to pick, drag a box to pick many.",
+  how: ["Click the button.", "In the viewport click an item, or drag a box."],
+  options: [["Shift + click", "add / remove from selection"], ["Ctrl + drag", "remove from selection"]] });
+item("t_move", { label: "Move", group: "Tools", key: "G", mode: "Object & Edit",
+  what: "Shows arrows on the selection; drag an arrow to slide it along that axis.",
+  how: ["Click the button.", "Drag an arrow (red X, green Y, blue Z) or the white circle to move freely."],
+  tip: "Quick way: press G, then X / Y / Z to lock an axis, type a number, Enter." });
+item("t_rotate", { label: "Rotate", group: "Tools", key: "R", mode: "Object & Edit",
+  what: "Shows coloured rings; drag a ring to turn the selection around that axis.",
+  how: ["Click the button.", "Drag a ring in the viewport."], tip: "Hold Ctrl while dragging to snap in 5° steps." });
+item("t_scale", { label: "Scale", group: "Tools", key: "S", mode: "Object & Edit",
+  what: "Makes the selection bigger or smaller. Drag a handle to stretch along one axis.",
+  how: ["Click the button.", "Drag a handle, or the white circle for all directions."],
+  tip: "Scaling an object (not in Edit Mode) changes its scale value – press ‘Apply rotation & size’ in step 5 before export." });
+item("duplicate", { label: "Duplicate", group: "Move / turn / size", key: "Shift D", mode: "Object",
+  what: "Makes a copy of the selected objects and lets you move it right away.",
+  how: ["Click.", "Move the mouse to place the copy, click to drop it (right-click drops it in place)."] });
+item("join", { label: "Join selected", group: "Move / turn / size", key: "Ctrl J", mode: "Object",
+  what: "Merges all selected objects into the active one (the last one clicked).",
+  how: ["Select the objects, click the main one last.", "Click Join."], tip: "Effects on the other objects are applied during the join." });
+item("delete", { label: "Delete", group: "Move / turn / size", key: "X", mode: "Object",
+  what: "Deletes the selected objects.", how: ["Click. Ctrl Z brings them back."] });
+item("edit_shape", { label: "Edit shape", group: "Move / turn / size", key: "Tab", mode: "Object",
+  what: "Goes to step 3 and enters Edit Mode on the selected mesh.", how: ["Click."] });
+item("size_m", { label: "Size (m)", kind: "field", group: "Move / turn / size",
+  what: "Exact width (X), depth (Y) and height (Z) of the object in metres.",
+  how: ["Click a number and type a new size, or drag left/right on it."],
+  tip: "iClone uses real-world size, so a 75 cm table should read Z = 0.75 m." });
+
+/* --- effects (modifiers) --- */
+const EFF = (id, label, what, opts, tip, extra = {}) => item("e_" + id, Object.assign({
+  label, group: "Add an effect", mode: "Object & Edit",
+  what, options: opts, tip,
+  how: ["Select the object(s).", "Click the effect – it is added to every selected mesh.",
+        "Change its settings in ‘Effects on …’ below."] }, extra));
+EFF("mirror", "Mirror", "Copies one side to the other. Shape one half, get both halves.",
+  [["Axis X / Y / Z", "which direction to mirror across"], ["Cut half", "throws away the geometry on the other side so only the mirror shows"],
+   ["Stick to center", "points on the middle line can't slide past it (no gaps)"]],
+  "Best with a shape centred on its origin. Model one side in Edit Mode and watch the other follow.");
+EFF("array", "Repeat", "Repeats the object in a row: stairs, fences, chains, shelves.",
+  [["How many", "number of copies (starts at 3)"], ["Direction", "X / Y / Z gap as object-widths. 1 = touching, 1.5 = half-gap"]],
+  "Stack two Repeats (one X, one Y) to make a grid of tiles.");
+EFF("solidify", "Thickness", "Gives a flat surface real thickness: walls, cloth, leaves, plates.",
+  [["Thickness", "how thick in metres (starts at 5 cm)"], ["Inside / Outside", "−1 grows inwards, +1 outwards, 0 both ways"]]);
+EFF("screw", "Spin", "Spins a shape around an axis (lathe): vases, bottles, columns, wheels.",
+  [["Angle", "360° = full turn, less for a partial shape"], ["Steps", "smoothness of the spin (32 default)"], ["Axis", "axis to spin around"]],
+  "Start with a Circle or draw half a vase outline in Edit Mode, then Spin it.");
+EFF("bend", "Bend", "Bends the whole object like a banana.",
+  [["Amount", "bend angle (starts at 45°)"], ["Axis", "which way it bends"]],
+  "Needs enough loop cuts along the length or it will bend in a few hard steps.");
+EFF("twist", "Twist", "Twists the object like a rope or screw.",
+  [["Amount", "twist angle (starts at 90°)"], ["Axis", "axis to twist around"]], "Add loop cuts so the twist is smooth.");
+EFF("taper", "Taper", "Makes one end thinner than the other.",
+  [["Amount", "0.5 = top half as wide; negative flares it out"], ["Axis", "direction of the taper"]]);
+EFF("cut", "Cut hole", "Cuts one shape out of another (boolean).",
+  [["Union / Difference / Intersect", "join, cut away, or keep only the overlap"], ["Cutter", "the object used to cut"]],
+  "The cutter stays as a wire box (hidden in renders). Move or scale it any time to change the hole.",
+  { how: ["One object selected: a wire cutter box is made for you – move/scale it into place.",
+          "Or select the cutter, then Shift-click the object to cut last, then click Cut hole."] });
+EFF("bevel", "Round edges", "Softens sharp edges so they catch light. Almost every real object needs this.",
+  [["Size", "how far the rounding goes (starts at 3 cm)"], ["Roundness", "segments: 1 = flat chamfer, 3+ = round"]],
+  "Only edges sharper than 30° are rounded, so curved surfaces stay clean.");
+EFF("subsurf", "Smooth", "Makes a blocky shape smooth and round (subdivision). Also turns on smooth shading.",
+  [["Smoothness", "levels 0–3. Each level is ~4× heavier"]],
+  "Add Loop cuts near an edge to keep it sharper under Smooth.");
+EFF("wnormal", "Clean shading", "Fixes dark smudges on flat faces after Round edges.",
+  [["Strength", "how strongly big faces stay flat"]], "Keep it at the bottom of the effects list.");
+
+/* --- effects list --- */
+item("stack", { label: "Effects on (object)", kind: "stackhead", group: "Effects list",
+  what: "Lists every effect on the active object, top to bottom (the order they are calculated), with only its main settings.",
+  how: ["Change a setting by clicking or dragging on it."] });
+item("s_eye", { label: "Show / hide (monitor icon)", short: "🖥", group: "Effects list",
+  what: "Turns the effect off in the viewport without deleting it.", how: ["Click to toggle."],
+  tip: "Handy for checking what an effect is doing." });
+item("s_name", { label: "Effect name", kind: "field", group: "Effects list",
+  what: "Name of the effect. Click to rename it.", how: ["Click, type, Enter."] });
+item("s_up", { label: "▲ Move up", short: "▲", group: "Effects list",
+  what: "Moves the effect one place up so it runs earlier.", how: ["Click."],
+  tip: "Order matters: Mirror before Smooth, Clean shading last." });
+item("s_down", { label: "▼ Move down", short: "▼", group: "Effects list",
+  what: "Moves the effect one place down so it runs later.", how: ["Click."] });
+item("s_apply", { label: "✓ Apply", short: "✓", group: "Effects list",
+  what: "Makes this effect permanent: it becomes real geometry you can edit.",
+  how: ["Click. You leave Edit Mode automatically."], tip: "Not needed while modelling. Apply only when you must edit the result." });
+item("s_remove", { label: "✕ Remove", short: "✕", group: "Effects list",
+  what: "Deletes the effect; the object goes back to how it was before.", how: ["Click."] });
+
+/* --- step 3 --- */
+item("start_edit", { label: "Start editing Cube", group: "Edit", key: "Tab", mode: "Object",
+  what: "Only shown when you are not in Edit Mode. Enters Edit Mode on the selected mesh.", how: ["Select a mesh, click."] });
+item("m_points", { label: "Points", group: "1. What do you want to pick?", key: "1", mode: "Edit",
+  what: "Pick individual corner points (vertices).", how: ["Click, then click points in the viewport."] });
+item("m_edges", { label: "Edges", group: "1. What do you want to pick?", key: "2", mode: "Edit",
+  what: "Pick the lines between points.", how: ["Click, then click edges in the viewport."], tip: "Use Edges for Round edges (Bevel) and Loop / Ring." });
+item("m_faces", { label: "Faces", group: "1. What do you want to pick?", key: "3", mode: "Edit",
+  what: "Pick whole flat surfaces.", how: ["Click, then click faces in the viewport."], tip: "Use Faces for Extrude and Inset." });
+const SEL = [
+  ["all", "All", "Selects everything in the mesh.", "A"],
+  ["none", "None", "Clears the selection.", "Alt A"],
+  ["invert", "Invert", "Selects what was not selected and the other way round.", "Ctrl I"],
+  ["more", "More", "Grows the selection by one ring of neighbours.", "Ctrl +"],
+  ["less", "Less", "Shrinks the selection from its border.", "Ctrl −"],
+  ["linked", "Whole part", "Expands to the whole connected piece (e.g. one leg of a table made inside one object).", "Ctrl L"],
+  ["loop", "Loop", "Extends selected edges into full loops going all the way around.", "Alt click"],
+  ["ring", "Ring", "Selects the parallel edges across a strip (a ring), good before ‘Cut into more’.", "Ctrl Alt click"],
+  ["nth", "Every other", "Keeps every second item of the selection – checker / zig-zag patterns.", ""],
+];
+SEL.forEach(([id, l, w, k]) => item("sel_" + id, { label: l, group: "1. What do you want to pick?", key: k, mode: "Edit",
+  what: w, how: ["Click."] }));
+const ET = [
+  ["extrude", "Extrude", "E", "Pulls the selected faces out, building new sides – how you grow arms, legs, shelves.",
+    "Select faces, click Extrude, then drag the yellow + handle.", "Extruding inwards makes a dent or a hole."],
+  ["inset", "Inset", "I", "Makes a smaller face inside each selected face (a border).",
+    "Select faces, click Inset, drag the yellow handle inside the face.", "Inset then Extrude inwards = window or drawer."],
+  ["loopcut", "Loop cut", "Ctrl R", "Adds a new ring of edges around the shape, for more detail or to bend it.",
+    "Hover over an edge (a yellow preview ring shows), click to place it, slide, click again.", "Scroll the mouse wheel while hovering for more cuts."],
+  ["bevel", "Bevel", "Ctrl B", "Rounds or chamfers just the selected edges (permanent, unlike Round edges).",
+    "Select edges, click Bevel, drag the yellow handle. Scroll for more segments.", "For whole-object rounding prefer the Round edges effect in step 4."],
+  ["knife", "Knife", "K", "Draws new cuts across faces wherever you click.",
+    "Click points across the faces, press Enter to finish (Esc cancels).", "Hold C to cut straight through the back side too."],
+];
+ET.forEach(([id, l, k, w, h, t]) => item("t_" + id, { label: l, group: "2. Pick a tool, drag in view", key: k, mode: "Edit",
+  what: w, how: ["Click the button (the tool stays active).", h], tip: t }));
+item("q_fill", { label: "Fill face (F)", group: "Quick actions", key: "F", mode: "Edit",
+  what: "Makes a face from the selected points / edges, or joins two points with an edge.", how: ["Select the border points, click."],
+  tip: "Use it to close holes." });
+item("q_sub", { label: "Cut into more", group: "Quick actions", mode: "Edit",
+  what: "Splits each selected edge / face into smaller pieces (subdivide).", how: ["Select, click. Adjust ‘Number of Cuts’ in the panel at the bottom-left of the viewport."] });
+item("q_merge", { label: "Merge (M) ▾", group: "Quick actions", key: "M", mode: "Edit",
+  what: "Welds selected points into one.", how: ["Select points, click, pick how to merge."],
+  options: [["At Center", "into the middle of the selection"], ["At Cursor", "at the 3D cursor"],
+            ["Collapse", "each connected group becomes one point"], ["At First / At Last", "onto the first / last point you clicked"],
+            ["By Distance", "removes doubled points sitting on top of each other"]],
+  tip: "‘By Distance’ fixes most weird seams." });
+item("q_delete", { label: "Delete (X) ▾", group: "Quick actions", key: "X", mode: "Edit",
+  what: "Deletes part of the mesh.", how: ["Select, click, choose what to delete."],
+  options: [["Vertices", "points and everything touching them"], ["Edges", "edges and their faces"], ["Faces", "just the faces (keeps outline points)"],
+            ["Only Edges & Faces", "keeps the points"], ["Only Faces", "makes a hole but keeps the edges"]] });
+item("q_dup", { label: "Duplicate part", group: "Quick actions", key: "Shift D", mode: "Edit",
+  what: "Copies the selected part inside the same object and lets you move it.", how: ["Select, click, move the mouse, click to drop."] });
+item("q_split", { label: "Split to object", group: "Quick actions", key: "P", mode: "Edit",
+  what: "Moves the selected part out into its own new object.", how: ["Select the part, click. The new object appears in the Outliner."] });
+item("done_edit", { label: "✓ Done editing", group: "Edit", key: "Tab", mode: "Edit",
+  what: "Leaves Edit Mode and goes back to step 2 (Block).", how: ["Click."] });
+
+/* --- step 4 --- */
+item("sh_flat", { label: "Flat", group: "Surface look", mode: "Object",
+  what: "Every face looks flat and sharp – faceted, low-poly look.", how: ["Select objects, click."] });
+item("sh_smooth", { label: "Smooth", group: "Surface look", mode: "Object",
+  what: "Blends shading across faces so the surface looks rounded (does not add geometry).", how: ["Select objects, click."],
+  tip: "Flat surfaces may look smudgy – use Auto instead." });
+item("sh_auto", { label: "Auto", group: "Surface look", mode: "Object",
+  what: "Smooth on gentle curves, sharp on hard corners (by angle). Best default for most objects.", how: ["Select objects, click.",
+  "Adjust the angle in the panel at the bottom-left of the viewport."] });
+
+/* --- step 5 --- */
+item("f_name", { label: "Name", kind: "field", group: "Get ready for iClone",
+  what: "Renames the active object. This name shows up in iClone.", how: ["Click, type, Enter."], tip: "Use clear names like Table_Wood." });
+item("f_apply_all", { label: "Apply all effects", group: "Get ready for iClone", mode: "Object",
+  what: "Makes every effect on the selected objects permanent.", how: ["Select objects, click."],
+  tip: "The export also applies effects on its own, but applying makes sure what you see is what you get." });
+item("f_apply_tr", { label: "Apply rotation & size", group: "Get ready for iClone", key: "Ctrl A", mode: "Object",
+  what: "Resets rotation to 0 and scale to 1 while keeping the object looking the same.", how: ["Select objects, click."],
+  tip: "Prevents stretched effects and wrong sizes in iClone." });
+item("f_origin", { label: "Pivot to bottom", group: "Get ready for iClone", mode: "Object",
+  what: "Moves the object's pivot (origin) to the bottom-centre so it stands and rotates naturally in iClone.", how: ["Select objects, click."] });
+item("f_floor", { label: "Put on floor", group: "Get ready for iClone", mode: "Object",
+  what: "Moves the selected objects up or down so their lowest point is exactly on the floor.", how: ["Select objects, click."] });
+item("f_export", { label: "Export selected as FBX", group: "Get ready for iClone", mode: "Object",
+  what: "Opens the FBX export window, pre-set to export only the selected objects with effects applied.",
+  how: ["Select what to export.", "Click, choose a folder and file name, press Export FBX.", "In iClone: File › Import, pick the .fbx."],
+  options: [["Selected only", "on"], ["Apply effects", "on"], ["Scale", "FBX All (correct size in iClone)"], ["Object types", "meshes and empties"]] });
+
+/* --- bookmarks --- */
+item("bm_head", { label: "Bookmarks (show / hide)", kind: "stackhead", group: "Bookmarks",
+  what: "Saves a selection so you can jump back to it with one click – no more hunting for the same faces again.",
+  how: ["Click the heading to fold the section."] });
+item("bm_name", { label: "Name (optional)", kind: "field", group: "Bookmarks",
+  what: "Type a name before saving. Left empty it becomes ‘Selection 1’, ‘Selection 2’…", how: ["Click, type."] });
+item("bm_save", { label: "Save selection", group: "Bookmarks", mode: "Object & Edit",
+  what: "Remembers what is selected now.",
+  how: ["Select objects – or points / edges / faces in Edit Mode.", "Click Save selection."],
+  options: [["Object Mode", "remembers the selected objects and which one was active"],
+            ["Edit Mode", "remembers the exact points, edges and faces, and the Points/Edges/Faces mode"]] });
+item("bm_view", { label: "Remember view", kind: "check", group: "Bookmarks",
+  what: "When ticked, the bookmark also stores where the viewport camera was looking.", how: ["Tick before saving."] });
+item("bm_rename", { label: "Rename", group: "Bookmarks",
+  what: "Turns the bookmark buttons into text fields so you can rename them.", how: ["Click, edit names, click Rename again."] });
+item("bm_go", { label: "Bookmark button (go back)", group: "Bookmarks", mode: "Any",
+  what: "Jumps back: reselects the objects, re-enters Edit Mode with the same parts selected, and restores the view.",
+  how: ["Click the bookmark. Hover it to see what it holds."],
+  tip: "If you changed the mesh since saving you get a warning – the selection may be slightly off. Click ⟳ to refresh it." });
+item("bm_update", { label: "⟳ Update", short: "⟳", group: "Bookmarks",
+  what: "Replaces this bookmark with what is selected now (same name).", how: ["Select, click ⟳."] });
+item("bm_delete", { label: "✕ Delete bookmark", short: "✕", group: "Bookmarks",
+  what: "Forgets this bookmark. Your objects are not touched.", how: ["Click."] });
+
+/* --- footer --- */
+item("txt_small", { label: "All Blender text: Smaller", group: "Text size",
+  what: "Makes ALL of Blender's text and buttons smaller (Preferences › Interface › Resolution Scale).", how: ["Click; each click is −0.1."] });
+item("txt_big", { label: "All Blender text: Bigger", group: "Text size",
+  what: "Makes ALL of Blender's text and buttons bigger.", how: ["Click; each click is +0.1 (up to 2.0)."],
+  tip: "This is saved in your Blender preferences, so it stays for every file." });
+
+/* --- opening the panel (not a panel button, but explained) --- */
+item("open", { label: "Opening Easy Studio", group: "Getting started", key: "F5",
+  what: "Easy Studio lives in the right sidebar of the 3D viewport on the ‘Easy’ tab, and stays open while you work.",
+  how: ["Press F5 with the mouse over the 3D viewport, or click the ‘Easy’ button at the top-right of the viewport header.",
+        "Press F5 again to hide it.", "Drag the sidebar's left edge to make it wider – Blender remembers it."] });
+
+/* ======================================================================
+   PANEL LAYOUT per step:  [boxTitle, columns, [ids]]
+   ====================================================================== */
+const EFFECT_STACK = ["stack", "s_eye", "s_name", "s_up", "s_down", "s_apply", "s_remove"];
+const LAYOUT = {
+  START: [["Click a shape to add it", 2, shapes.map(s => "shape_" + s[0])], [null, 1, ["on_floor"]]],
+  BLOCK: [["Move / turn / size", 2, ["t_select", "t_move", "t_rotate", "t_scale", "duplicate", "join", "delete", "edit_shape"]],
+          [null, 1, ["size_m"]],
+          ["Add an effect (undo-able)", 2, ["e_mirror", "e_array", "e_solidify", "e_screw", "e_bend", "e_twist", "e_taper", "e_cut"]],
+          "STACK"],
+  EDIT: [["Not in Edit Mode yet? ", 1, ["start_edit"]],
+         ["1. What do you want to pick?", 3, ["m_points", "m_edges", "m_faces"]],
+         [null, 3, SEL.map(s => "sel_" + s[0])],
+         ["2. Pick a tool, drag in view", 2, ["t_select", "t_move", "t_rotate", "t_scale", "t_extrude", "t_inset", "t_loopcut", "t_bevel", "t_knife"]],
+         ["Quick actions", 2, ["q_fill", "q_sub", "q_merge", "q_delete", "q_dup", "q_split"]],
+         ["Add an effect (undo-able)", 2, ["e_mirror", "e_subsurf"]],
+         [null, 1, ["done_edit"]]],
+  DETAIL: [["Surface look", 3, ["sh_flat", "sh_smooth", "sh_auto"]],
+           ["Add an effect (undo-able)", 2, ["e_bevel", "e_subsurf", "e_wnormal", "e_solidify"]],
+           "STACK"],
+  FINISH: [["Get ready for iClone", 1, ["f_name", "f_apply_all", "f_apply_tr", "f_origin", "f_floor", "f_export"]], "STACK"],
+};
+const HEAD = ["open", "tips", "size_minus", "size_plus", ...STEPS.map(s => "tab_" + s.id), "status"];
+const FOOT = ["bm_head", "bm_name", "bm_save", "bm_view", "bm_rename", "bm_go", "bm_update", "bm_delete", "txt_small", "txt_big"];
+
+function orderFor(step) {
+  const ids = [...HEAD];
+  LAYOUT[step].forEach(b => b === "STACK" ? ids.push(...EFFECT_STACK) : ids.push(...b[2]));
+  return [...ids, ...FOOT];
+}
+
+/* ======================================================================
+   STATE + RENDER
+   ====================================================================== */
+const S = { step: "START", sel: null, tour: -1, seen: new Set(JSON.parse(localStorage.getItem("es_seen") || "[]")) };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function btn(id, extraCls = "", text) {
+  const it = I[id];
+  let cls = "b " + extraCls;
+  if (it.kind === "field") cls += " field";
+  if (it.kind === "check") cls += " check";
+  if (S.sel === id) cls += " active";
+  const label = text ?? (it.short ?? (it.kind === "check" ? "☑ " + it.label : it.label));
+  return `<button class="${cls}" data-id="${id}" title="${esc(it.label)}">${esc(label)}${S.seen.has(id) ? '<span class="seen"></span>' : ""}</button>`;
+}
+
+function renderMock() {
+  const st = STEPS.find(s => s.id === S.step);
+  let h = `<p class="caption">This is the Easy tab. Click any button ↓</p>`;
+  h += `<div class="row"><span class="title">▣ Easy Studio</span>${btn("tips", "small")}${btn("size_minus", "small")}${btn("size_plus", "small")}</div>`;
+  h += `<div class="tabs">${STEPS.map(s => btn("tab_" + s.id, s.id === S.step ? "on" : "")).join("")}</div>`;
+  h += `<div class="mbox" data-id="status" style="cursor:pointer"><div class="status">▸ <b>${st.title}</b><br>▣ <b>Cube</b> (${S.step === "EDIT" ? "Editing" : "Object"})<br>${st.tips.join("<br>")}</div></div>`;
+  LAYOUT[S.step].forEach(b => {
+    if (b === "STACK") { h += stackMock(); return; }
+    const [title, cols, ids] = b;
+    if (S.step === "EDIT" && ids[0] === "start_edit") {
+      h += `<div class="note">Shown only outside Edit Mode:</div>${btn("start_edit", "wide")}<div class="note">In Edit Mode you see:</div>`;
+      return;
+    }
+    h += `<div class="mbox">${title ? `<h4>${esc(title)}</h4>` : ""}<div class="grid" style="grid-template-columns:repeat(${cols},1fr)">${ids.map(i => btn(i, ["m_points"].includes(i) ? "on" : "")).join("")}</div></div>`;
+  });
+  h += `<div class="mbox">${btn("bm_head", "check wide", "▾ Bookmarks (go back to a selection)")}
+        <div class="row" style="margin-top:.3rem">${btn("bm_name", "", "Name (optional)")}${btn("bm_save")}</div>
+        <div class="row">${btn("bm_view")}${btn("bm_rename")}</div>
+        <div class="row">${btn("bm_go", "on", "Window frame")}${btn("bm_update", "small")}${btn("bm_delete", "small")}</div></div>`;
+  h += `<div class="row"><span class="note" style="flex:1">All Blender text:</span>${btn("txt_small", "", "Smaller")}${btn("txt_big", "", "Bigger")}</div>`;
+  $("mock").innerHTML = h;
+}
+
+function stackMock() {
+  return `<div class="mbox">${btn("stack", "check wide", "▣ Effects on Cube")}
+    <div class="row" style="margin-top:.3rem">${btn("s_eye", "small")}${btn("s_name", "", "Round edges")}${btn("s_up", "small")}${btn("s_down", "small")}${btn("s_apply", "small")}${btn("s_remove", "small")}</div>
+    <div class="note">…then its main settings (e.g. Size, Roundness)</div></div>`;
+}
+
+function renderCard() {
+  const c = $("card");
+  if (!S.sel) { c.innerHTML = welcome(); return; }
+  const it = I[S.sel];
+  const st = STEPS.find(s => s.id === S.step);
+  const order = orderFor(S.step), pos = order.indexOf(S.sel);
+  let h = `<div class="crumbs">${esc(st.tab)} › ${esc(it.group)}</div><h2>${esc(it.label)}</h2><div>`;
+  if (it.key) h += `<span class="tag key">${esc(it.key)}</span>`;
+  if (it.mode) h += `<span class="tag mode">${esc(it.mode)} mode</span>`;
+  h += `</div><p class="what">${esc(it.what)}</p>`;
+  if (it.how?.length) h += `<h3>How</h3><ol class="how">${it.how.map(x => `<li>${esc(x)}</li>`).join("")}</ol>`;
+  if (it.options?.length) h += `<h3>Options</h3><table class="opts">${it.options.map(([a, b]) => `<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join("")}</table>`;
+  if (it.tip) h += `<div class="tip">${esc(it.tip)}</div>`;
+  h += `<div class="nav"><button class="pill" id="prev" ${pos <= 0 ? "disabled" : ""}>← ${pos > 0 ? esc(I[order[pos - 1]].label) : ""}</button>
+        <button class="pill" id="home">Overview</button>
+        <button class="pill primary" id="next" ${pos >= order.length - 1 ? "disabled" : ""}>${pos < order.length - 1 ? esc(I[order[pos + 1]].label) : ""} →</button></div>`;
+  c.innerHTML = h;
+  $("prev").onclick = () => step(-1);
+  $("next").onclick = () => step(1);
+  $("home").onclick = () => select(null);
+}
+
+function welcome() {
+  return `<div class="welcome"><h2>Welcome to Easy Studio</h2>
+    <p class="what">Easy Studio is the <b>Easy</b> tab in Blender's right sidebar. It walks you through making an object in five steps and shows only the buttons that matter at each step.</p>
+    <ul><li>Open it with <kbd>F5</kbd> over the 3D viewport, or the <b>Easy</b> button in the viewport header.</li>
+        <li>Click any button in the panel on the left to see what it does, how to use it and its options.</li>
+        <li>Green dots mark buttons you have already read.</li>
+        <li>New? Press <b>▶ Guided tour</b> at the top.</li></ul>
+    <div class="stepcards">${STEPS.map((s, i) => `<button data-step="${s.id}"><b>${s.tab}</b>${esc(s.intro)}</button>`).join("")}</div>
+    <p style="color:var(--muted);margin-top:1.2rem">Read ${S.seen.size} of ${Object.keys(I).length} buttons.</p></div>`;
+}
+
+function render() { renderMock(); renderCard(); renderTour(); }
+
+function stepOf(id) {
+  if (orderFor(S.step).includes(id)) return S.step;
+  return STEPS.find(s => orderFor(s.id).includes(id))?.id || S.step;
+}
+
+function select(id, opts = {}) {
+  if (id) {
+    S.step = stepOf(id);
+    S.seen.add(id);
+    localStorage.setItem("es_seen", JSON.stringify([...S.seen]));
+  }
+  S.sel = id;
+  render();
+  if (id) {
+    const el = document.querySelector(`#mock [data-id="${id}"]`);
+    if (el) { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); if (opts.flash) el.classList.add("found"); }
+    if (window.innerWidth < 900) $("card").scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+function setStep(stepId) { S.step = stepId; S.sel = "tab_" + stepId; S.seen.add(S.sel); render(); }
+
+function step(d) {
+  const order = orderFor(S.step);
+  const i = order.indexOf(S.sel);
+  const n = order[Math.max(0, Math.min(order.length - 1, i + d))];
+  if (n) select(n);
+}
+
+/* ---------- guided tour ---------- */
+const TOUR = [
+  ["open", "Open Easy Studio with F5."],
+  ["tab_START", "Step 1 – start with a basic shape."],
+  ["shape_cube", "Add a cube. It sits on the floor."],
+  ["tab_BLOCK", "Step 2 – block out the rough form."],
+  ["t_scale", "Stretch it to the size you need…"],
+  ["size_m", "…or type the exact size in metres."],
+  ["e_mirror", "Effects add shape without destroying anything."],
+  ["stack", "Every effect shows up here with its main settings."],
+  ["tab_EDIT", "Step 3 – edit points, edges and faces."],
+  ["m_faces", "Choose what to pick."],
+  ["t_extrude", "Pull faces out to grow new parts."],
+  ["t_loopcut", "Add loops for detail."],
+  ["bm_save", "Save a tricky selection so you can come back to it."],
+  ["bm_go", "One click brings the selection back."],
+  ["done_edit", "Finish editing."],
+  ["tab_DETAIL", "Step 4 – make it look finished."],
+  ["e_bevel", "Round edges catch light – instant realism."],
+  ["sh_auto", "Auto shading: smooth curves, crisp corners."],
+  ["tab_FINISH", "Step 5 – prepare for iClone."],
+  ["f_apply_tr", "Lock in rotation & size."],
+  ["f_origin", "Pivot at the bottom so it stands right."],
+  ["f_export", "Export FBX and import it in iClone. Done!"],
+];
+function renderTour() {
+  const bar = $("tourBar");
+  if (S.tour < 0) { bar.style.display = "none"; return; }
+  bar.style.display = "block";
+  bar.innerHTML = `<b>Tour ${S.tour + 1} / ${TOUR.length}:</b> ${esc(TOUR[S.tour][1])}
+    <div class="nav" style="margin-top:.6rem"><button class="pill" id="tPrev" ${S.tour === 0 ? "disabled" : ""}>← Back</button>
+    <button class="pill" id="tEnd">End tour</button>
+    <button class="pill primary" id="tNext">${S.tour === TOUR.length - 1 ? "Finish" : "Next →"}</button></div>`;
+  $("tPrev").onclick = () => tourGo(S.tour - 1);
+  $("tNext").onclick = () => S.tour === TOUR.length - 1 ? endTour() : tourGo(S.tour + 1);
+  $("tEnd").onclick = endTour;
+}
+function tourGo(i) { S.tour = i; select(TOUR[i][0], { flash: true }); }
+function endTour() { S.tour = -1; render(); }
+$("tourBtn").onclick = () => tourGo(0);
+
+/* ---------- search ---------- */
+const q = $("q"), res = $("results");
+let hits = [], hi = 0;
+function doSearch() {
+  const t = q.value.trim().toLowerCase();
+  if (!t) { res.style.display = "none"; return; }
+  hits = Object.values(I).filter(it =>
+    [it.label, it.what, it.group, it.key, it.tip, ...(it.options || []).flat()].join(" ").toLowerCase().includes(t)).slice(0, 25);
+  hi = 0;
+  res.innerHTML = hits.length ? hits.map((it, i) => `<button data-hit="${i}" class="${i === 0 ? "sel" : ""}">${esc(it.label)}<small>${esc(STEPS.find(s => s.id === stepOf(it.id)).tab)} · ${esc(it.group)}</small></button>`).join("")
+                              : `<button disabled>No match</button>`;
+  res.style.display = "block";
+}
+q.addEventListener("input", doSearch);
+q.addEventListener("keydown", e => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    hi = (hi + (e.key === "ArrowDown" ? 1 : -1) + hits.length) % hits.length;
+    [...res.children].forEach((b, i) => b.classList.toggle("sel", i === hi)); e.preventDefault();
+  } else if (e.key === "Enter" && hits[hi]) { pick(hits[hi]); }
+  else if (e.key === "Escape") { q.value = ""; doSearch(); q.blur(); }
+});
+res.addEventListener("click", e => { const b = e.target.closest("[data-hit]"); if (b) pick(hits[+b.dataset.hit]); });
+function pick(it) { q.value = ""; res.style.display = "none"; q.blur(); select(it.id, { flash: true }); }
+document.addEventListener("click", e => { if (!e.target.closest(".search")) res.style.display = "none"; });
+
+/* ---------- clicks + keys ---------- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("#mock [data-id]");
+  if (b) {
+    const id = b.dataset.id;
+    if (id.startsWith("tab_")) { setStep(id.slice(4)); return; }
+    select(id);
+  }
+  const sc = e.target.closest("[data-step]");
+  if (sc) setStep(sc.dataset.step);
+});
+document.addEventListener("keydown", e => {
+  if (e.target === q) return;
+  if (e.key === "/") { q.focus(); e.preventDefault(); }
+  else if (e.key === "ArrowRight") step(1);
+  else if (e.key === "ArrowLeft") step(-1);
+  else if (/^[1-5]$/.test(e.key)) setStep(STEPS[+e.key - 1].id);
+  else if (e.key === "Escape") { S.tour >= 0 ? endTour() : select(null); }
+});
+
+/* ---------- page text size ---------- */
+let fs = +(localStorage.getItem("es_fs") || 18);
+function setFs(v) { fs = Math.max(14, Math.min(26, v)); document.documentElement.style.setProperty("--fs", fs + "px"); localStorage.setItem("es_fs", fs); }
+$("fsMinus").onclick = () => setFs(fs - 2);
+$("fsPlus").onclick = () => setFs(fs + 2);
+setFs(fs);
+
+render();
+</script>
+</body>
+</html>
